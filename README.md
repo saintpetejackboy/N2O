@@ -12,9 +12,6 @@ A Rust library and web service built with Warp, Serde, and Tokio.
 ![Rust](https://img.shields.io/badge/Made%20with-Rust-orange.svg)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
 
-## License
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-
 ## Table of Contents
 
 - [Features](#features)
