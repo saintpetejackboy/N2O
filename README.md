@@ -1,15 +1,16 @@
 # N2O
-![Crate Name](https://img.shields.io/badge/crate-n2o-blue.svg)  
-![Rust Edition](https://img.shields.io/badge/rust-2021-orange.svg)  
-![Warp](https://img.shields.io/badge/Warp-0.3-blue.svg)  
-![Serde](https://img.shields.io/badge/Serde-1.0-blue.svg)  
+![Crate Name](https://img.shields.io/badge/crate-n2o-blue.svg)
+![Rust Edition](https://img.shields.io/badge/rust-2021-orange.svg) 
+![Warp](https://img.shields.io/badge/Warp-0.3-blue.svg) 
+![Serde](https://img.shields.io/badge/Serde-1.0-blue.svg) 
 ![Tokio](https://img.shields.io/badge/Tokio-1.0-orange.svg)
 
 A Rust library and web service built with Warp, Serde, and Tokio.
 
 ## Status
-![Build Status](https://img.shields.io/github/actions/workflow/status/<OWNER>/<REPO>/<WORKFLOW_FILE>.yaml?branch=main)  
-![Coverage](https://img.shields.io/badge/coverage-90%25-brightgreen.svg)
+![License: Unlicensed](https://img.shields.io/badge/license-Unlicensed-blue.svg)
+![Rust](https://img.shields.io/badge/Made%20with-Rust-orange.svg)
+![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
 
 ## License
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
