@@ -112,92 +112,98 @@ pub fn create_routes(
     let store_filter = warp::any().map(move || Arc::clone(&store));
 
     // /add endpoint
-    let add_route = warp::path("add")
-        .and(warp::post())
-        .and(token_filter.clone())
-        .and(store_filter.clone())
-        .and(warp::body::json())
-        .map(|is_valid: bool, store: Store, body: serde_json::Value| {
-            if !is_valid {
-                return warp::reply::json(&serde_json::json!({
-                    "status": "error",
-                    "message": "Invalid token"
-                }));
-            }
+	let add_route = warp::path("add")
+		.and(warp::post())
+		.and(token_filter.clone())
+		.and(store_filter.clone())
+		.and(warp::body::json())
+		.map(|is_valid: bool, store: Store, body: serde_json::Value| {
+			if !is_valid {
+				return warp::reply::json(&serde_json::json!({
+					"status": "error",
+					"message": "Invalid token"
+				}));
+			}
 
-            let key = convert_to_ten_digits(body["key"].as_str().unwrap_or(""));
-            let val = body["val"].as_str().unwrap_or("").to_string();
+			// Convert both key and val to 10-digit numbers
+			let key = convert_to_ten_digits(body["key"].as_str().unwrap_or(""));
+			let raw_val = body["val"].as_str().unwrap_or("");
+			let val = convert_to_ten_digits(raw_val);
 
-            let mut db = store.lock().unwrap();
-            if db.contains_key(&key) {
-                warp::reply::json(&serde_json::json!({
-                    "status": "exists",
-                    "message": "Number already texted"
-                }))
-            } else {
-                db.insert(key, vec![val]);
-                // Persist
-                save_data(DATA_FILE, &db);
-                warp::reply::json(&serde_json::json!({
-                    "status": "added",
-                    "message": "New number added"
-                }))
-            }
-        });
+			let mut db = store.lock().unwrap();
+			if db.contains_key(&key) {
+				warp::reply::json(&serde_json::json!({
+					"status": "exists",
+					"message": "Number already texted"
+				}))
+			} else {
+				db.insert(key, vec![val]);
+				// Persist
+				save_data(DATA_FILE, &db);
+				warp::reply::json(&serde_json::json!({
+					"status": "added",
+					"message": "New number added"
+				}))
+			}
+		});
+
 
     // /addmulti endpoint
-    let addmulti_route = warp::path("addmulti")
-        .and(warp::post())
-        .and(token_filter.clone())
-        .and(store_filter.clone())
-        .and(warp::body::json())
-        .map(|is_valid: bool, store: Store, body: serde_json::Value| {
-            if !is_valid {
-                return warp::reply::json(&serde_json::json!({
-                    "status": "error",
-                    "message": "Invalid token"
-                }));
-            }
+	let addmulti_route = warp::path("addmulti")
+		.and(warp::post())
+		.and(token_filter.clone())
+		.and(store_filter.clone())
+		.and(warp::body::json())
+		.map(|is_valid: bool, store: Store, body: serde_json::Value| {
+			if !is_valid {
+				return warp::reply::json(&serde_json::json!({
+					"status": "error",
+					"message": "Invalid token"
+				}));
+			}
 
-            let key = convert_to_ten_digits(body["key"].as_str().unwrap_or(""));
-            let val = body["val"].as_str().unwrap_or("").to_string();
+			// Convert both key and val to 10-digit numbers
+			let key = convert_to_ten_digits(body["key"].as_str().unwrap_or(""));
+			let raw_val = body["val"].as_str().unwrap_or("");
+			let val = convert_to_ten_digits(raw_val);
 
-            let mut db = store.lock().unwrap();
-            match db.get_mut(&key) {
-                Some(values) => {
-                    if values.contains(&val) {
-                        warp::reply::json(&serde_json::json!({
-                            "status": "exists",
-                            "message": "Number already texted from that sender"
-                        }))
-                    } else {
-                        // Key exists, but add a new sender if < 2
-                        if values.len() < 2 {
-                            values.push(val);
-                            save_data(DATA_FILE, &db);
-                            warp::reply::json(&serde_json::json!({
-                                "status": "added",
-                                "message": "New sender added to existing key"
-                            }))
-                        } else {
-                            warp::reply::json(&serde_json::json!({
-                                "status": "exists",
-                                "message": "Number already texted. Max senders reached."
-                            }))
-                        }
-                    }
-                }
-                None => {
-                    // Key doesn't exist yet
-                    db.insert(key, vec![val]);
-                    save_data(DATA_FILE, &db);
-                    warp::reply::json(&serde_json::json!({
-                        "status": "added",
-                        "message": "New key/sender combination added"
-                    }))
-                }
-            }
-        });
+			let mut db = store.lock().unwrap();
+			match db.get_mut(&key) {
+				Some(values) => {
+					if values.contains(&val) {
+						warp::reply::json(&serde_json::json!({
+							"status": "exists",
+							"message": "Number already texted from that sender"
+						}))
+					} else {
+						// Key exists, but add a new sender if < 2
+						if values.len() < 2 {
+							values.push(val);
+							save_data(DATA_FILE, &db);
+							warp::reply::json(&serde_json::json!({
+								"status": "added",
+								"message": "New sender added to existing key"
+							}))
+						} else {
+							warp::reply::json(&serde_json::json!({
+								"status": "exists",
+								"message": "Number already texted. Max senders reached."
+							}))
+						}
+					}
+				}
+				None => {
+					// Key doesn't exist yet
+					db.insert(key, vec![val]);
+					save_data(DATA_FILE, &db);
+					warp::reply::json(&serde_json::json!({
+						"status": "added",
+						"message": "New key/sender combination added"
+					}))
+				}
+			}
+		});
+
 
     // /dump endpoint
     let dump_route = warp::path("dump")

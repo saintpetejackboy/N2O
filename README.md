@@ -1,13 +1,15 @@
 # N2O
+
 ![Crate Name](https://img.shields.io/badge/crate-n2o-blue.svg)
-![Rust Edition](https://img.shields.io/badge/rust-2021-orange.svg) 
-![Warp](https://img.shields.io/badge/Warp-0.3-blue.svg) 
-![Serde](https://img.shields.io/badge/Serde-1.0-blue.svg) 
+![Rust Edition](https://img.shields.io/badge/rust-2021-orange.svg)
+![Warp](https://img.shields.io/badge/Warp-0.3-blue.svg)
+![Serde](https://img.shields.io/badge/Serde-1.0-blue.svg)
 ![Tokio](https://img.shields.io/badge/Tokio-1.0-orange.svg)
 
 A Rust library and web service built with Warp, Serde, and Tokio.
 
 ## Status
+
 ![License: Unlicensed](https://img.shields.io/badge/license-Unlicensed-blue.svg)
 ![Rust](https://img.shields.io/badge/Made%20with-Rust-orange.svg)
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)
@@ -32,7 +34,7 @@ A Rust library and web service built with Warp, Serde, and Tokio.
 
 ## Features
 
-- **Add Phone Numbers**: Add single or multiple phone numbers with associated senders.
+- **Add Phone Numbers**: Add single or multiple phone numbers with associated senders, both converted to 10-digit representations.
 - **Data Dump**: Export all stored data in CSV format.
 - **Data Archiving**: Automatically archives data before clearing.
 - **Status Monitoring**: Retrieve service status, including uptime and data statistics.
@@ -85,7 +87,7 @@ Authorization: your_token_here
 
 **Endpoint:** `/add`  
 **Method:** `POST`  
-**Description:** Adds a single phone number with an associated sender.
+**Description:** Adds a single phone number with an associated sender. Both the `key` (phone number) and `val` (sender identifier) are converted to their 10-digit representations before storage.
 
 **Request Body:**
 
@@ -95,6 +97,11 @@ Authorization: your_token_here
   "val": "sender_identifier"
 }
 ```
+
+**Behavior:**
+
+- **Key Conversion:** The `key` field is converted to a 10-digit number using the `convert_to_ten_digits` function. Non-alphanumeric characters are ignored, and letters are mapped to their corresponding phone keypad digits.
+- **Value Conversion:** The `val` field is also converted to a 10-digit number following the same conversion logic.
 
 **Response:**
 
@@ -125,11 +132,42 @@ Authorization: your_token_here
   }
   ```
 
+- **Error (Invalid Input):**
+
+  ```json
+  {
+    "status": "error",
+    "message": "Both key and value must be 10 digits after conversion."
+  }
+  ```
+
+**Example Request:**
+
+```bash
+curl -X POST http://localhost:3030/add \
+  -H "Content-Type: application/json" \
+  -H "Authorization: your_token_here" \
+  -d '{
+        "key": "1-800-FLOWERS",
+        "val": "SUPPORT"
+      }'
+```
+
+**Example Processing:**
+
+- **Key Conversion:**
+  - Input: `"1-800-FLOWERS"`
+  - Conversion: `"18003569377"` → Truncated to last 10 digits: `"8003569377"`
+
+- **Value Conversion:**
+  - Input: `"SUPPORT"`
+  - Conversion: `"7877768"` → Padded or handled as per `convert_to_ten_digits` logic.
+
 ### `/addmulti` - Add Multiple Senders to a Phone Number
 
 **Endpoint:** `/addmulti`  
 **Method:** `POST`  
-**Description:** Adds a sender to an existing phone number. Each phone number can have up to two senders.
+**Description:** Adds a sender to an existing phone number. Both the `key` and `val` are converted to 10-digit representations. Each phone number can have up to two senders.
 
 **Request Body:**
 
@@ -139,6 +177,12 @@ Authorization: your_token_here
   "val": "sender_identifier"
 }
 ```
+
+**Behavior:**
+
+- **Key Conversion:** Converts the `key` to a 10-digit number.
+- **Value Conversion:** Converts the `val` to a 10-digit number.
+- **Sender Limits:** Each phone number can have a maximum of two unique senders.
 
 **Response:**
 
@@ -178,6 +222,37 @@ Authorization: your_token_here
   }
   ```
 
+- **Error (Invalid Input):**
+
+  ```json
+  {
+    "status": "error",
+    "message": "Both key and value must be 10 digits after conversion."
+  }
+  ```
+
+**Example Request:**
+
+```bash
+curl -X POST http://localhost:3030/addmulti \
+  -H "Content-Type: application/json" \
+  -H "Authorization: your_token_here" \
+  -d '{
+        "key": "1-800-FLOWERS",
+        "val": "HELPDESK"
+      }'
+```
+
+**Example Processing:**
+
+- **Key Conversion:**
+  - Input: `"1-800-FLOWERS"`
+  - Conversion: `"18003569377"` → Truncated to last 10 digits: `"8003569377"`
+
+- **Value Conversion:**
+  - Input: `"HELPDESK"`
+  - Conversion: `"4357375"` → Padded or handled as per `convert_to_ten_digits` logic.
+
 ### `/dump` - Export Data as CSV
 
 **Endpoint:** `/dump`  
@@ -190,7 +265,7 @@ Authorization: your_token_here
 
   ```
   phone_number,senders
-  1234567890,sender1|sender2
+  8003569377,4357375|...
   ```
 
 - **Error (Invalid Token):**
@@ -201,6 +276,14 @@ Authorization: your_token_here
     "message": "Invalid token"
   }
   ```
+
+**Example Request:**
+
+```bash
+curl -X GET http://localhost:3030/dump \
+  -H "Authorization: your_token_here" \
+  -o data.csv
+```
 
 ### `/clear` - Clear All Data
 
@@ -265,6 +348,13 @@ Authorization: your_token_here
   }
   ```
 
+**Example Request:**
+
+```bash
+curl -X GET http://localhost:3030/status \
+  -H "Authorization: your_token_here"
+```
+
 ## Testing
 
 The project includes comprehensive test cases to ensure functionality and reliability.
@@ -291,7 +381,7 @@ test result: ok. 15 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 
 ## Data Persistence
 
-n2o uses an in-memory `HashMap` wrapped in an `Arc<Mutex<...>>` for thread-safe data storage. Data is persisted to a JSON file (`n2o_data.json`) to ensure durability across restarts. Additionally, before clearing data via the `/clear` endpoint, the current state is archived in a compressed `.json.gz` file with a timestamp.
+N2O uses an in-memory `HashMap` wrapped in an `Arc<Mutex<...>>` for thread-safe data storage. Data is persisted to a JSON file (`n2o_data.json`) to ensure durability across restarts. Additionally, before clearing data via the `/clear` endpoint, the current state is archived in a compressed `.json.gz` file with a timestamp.
 
 ### Data Archiving
 
@@ -303,6 +393,30 @@ n2o_data_backup_YYYYMMDDHHMMSS.json.gz
 
 These archives are stored in the project root directory.
 
+### 10-Digit Conversion
+
+Both **keys** (phone numbers) and **values** (sender identifiers) are converted to their 10-digit representations before being stored. This ensures consistency and standardization across all data entries.
+
+- **Conversion Logic:**
+  - **Digits:** Retained as-is.
+  - **Letters:** Mapped to their corresponding phone keypad digits (e.g., A, B, C → 2).
+  - **Others:** Ignored.
+  - **Length Handling:**
+    - If the resulting number has **10 or fewer digits**, it is stored as-is.
+    - If it has **more than 10 digits**, only the **last 10 digits** are retained.
+
+**Example:**
+
+- **Key Conversion:**
+  - Input: `"1-800-FLOWERS"`
+  - Conversion: `"18003569377"` → Truncated to `"8003569377"`
+
+- **Value Conversion:**
+  - Input: `"SUPPORT"`
+  - Conversion: `"7877768"` → Stored as `"7877768"`
+
+**Note:** Ensure that both `key` and `val` fields result in exactly 10 digits after conversion. If not, consider implementing additional validation or padding mechanisms as needed.
+
 ## License
 
 This project is **unlicensed**. You are free to use, modify, and distribute it as you see fit.
@@ -311,6 +425,14 @@ This project is **unlicensed**. You are free to use, modify, and distribute it a
 
 Contributions are welcome! If you have suggestions, improvements, or bug fixes, please feel free to open an issue or submit a pull request.
 
+### Guidelines
+
+1. **Fork the Repository:** Create your own fork of the project.
+2. **Create a Feature Branch:** `git checkout -b feature/YourFeature`
+3. **Commit Your Changes:** Ensure your code follows the project's coding standards.
+4. **Push to Your Fork:** `git push origin feature/YourFeature`
+5. **Open a Pull Request:** Provide a clear description of your changes and the problem they solve.
+
 ## Contact
 
 Created by [saintpetejackboy](https://github.com/saintpetejackboy). Feel free to reach out for any inquiries or support.
@@ -318,3 +440,4 @@ Created by [saintpetejackboy](https://github.com/saintpetejackboy). Feel free to
 ---
 
 **Note:** Ensure that you manage your `Authorization` tokens securely and avoid exposing them publicly. Tokens are essential for maintaining the security and integrity of the service.
+
